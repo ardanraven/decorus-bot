@@ -20,7 +20,7 @@ respostas_palavra_unica = {
     "ervas": "🌿 Ervas comuns: alecrim, lavanda, arruda, guiné... Cada uma tem um poder especial!"
 }
 
-mensagem_padrao = "Desculpe, não entendi. Mas posso falar sobre banhos, ervas, proteção, prosperidade, amor e mais! 🌙"
+mensagem_padrao = "Desculpe, não entendi. Ainda estou aprendendo mas logo logo vou poder te ajudar! 🌙"
 
 def detectar_contexto(mensagem):
     palavras_usuario = mensagem.lower().split()
