@@ -1,43 +1,61 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
-from dotenv import load_dotenv
 import os
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# Carrega variáveis de ambiente
-load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-# Palavras-chave e respostas
-respostas = {
-    "banho": "🛁 Banhos de ervas limpam corpo e alma. Experimente arruda, alecrim ou lavanda na lua minguante para proteção.",
-    "cristal": "💎 Cristais são guardiões da energia. Ametista acalma, quartzo limpa, turmalina protege.",
-    "ritual": "🕯️ Rituais conectam o visível ao invisível. Use velas, intenções claras e círculos mágicos.",
-    "lua": "🌑 As fases da lua guiam os feitiços: nova para começos, cheia para poder, minguante para libertações.",
-    "proteção": "🔮 Para se proteger, use sal grosso nos cantos da casa, incenso de arruda e cristal de turmalina negra.",
-    "limpeza": "💨 Faça defumação com sálvia branca ou alecrim. Banho de sal grosso e mentalização ajudam na limpeza energética."
+# Respostas específicas por múltiplas palavras-chave (prioridade alta)
+respostas_contextuais = {
+    ("banho", "proteção"): "🛡️ Banho de proteção: use sal grosso e alecrim. Faça em uma lua minguante ou quando sentir necessidade de afastar energias negativas.",
+    ("banho", "prosperidade"): "💰 Banho de prosperidade: louro, manjericão e canela são ótimos. Faça durante a lua crescente e mentalize abundância.",
+    ("banho", "amor"): "❤️ Banho de amor: use rosas vermelhas, mel e manjericão. Ideal na lua cheia para atrair paixão e carinho."
 }
 
-# Função que detecta palavras-chave
-async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mensagem = update.message.text.lower()
+# Palavras-chave únicas com prioridade média
+respostas_palavra_unica = {
+    "banho": "✨ Os banhos espirituais purificam corpo e alma. Quer saber sobre proteção, amor ou prosperidade?",
+    "proteção": "🧿 Proteção espiritual: use cristais como turmalina ou banhos com arruda e alecrim.",
+    "prosperidade": "🌟 Para atrair prosperidade, use canela, louro e mentalize abundância.",
+    "amor": "💘 Para o amor, rosas, mel e alfazema são poderosos ingredientes!",
+    "ervas": "🌿 Ervas comuns: alecrim, lavanda, arruda, guiné... Cada uma tem um poder especial!"
+}
 
-    for palavra, resposta in respostas.items():
-        if palavra in mensagem:
-            await update.message.reply_text(resposta)
-            return
+mensagem_padrao = "Desculpe, não entendi. Mas posso falar sobre banhos, ervas, proteção, prosperidade, amor e mais! 🌙"
 
-    # Caso nenhuma palavra-chave seja encontrada
-    await update.message.reply_text("🌙 Não entendi muito bem... Tente perguntar sobre banhos, cristais, rituais, fases da lua ou proteção.")
+def detectar_contexto(mensagem):
+    palavras_usuario = mensagem.lower().split()
 
-# Inicia o bot
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    # Verifica se alguma combinação contextual bate
+    for chaves, resposta in respostas_contextuais.items():
+        if all(palavra in palavras_usuario for palavra in chaves):
+            return resposta
 
-    # Captura todas as mensagens de texto
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, responder))
+    # Verifica se pelo menos uma palavra-chave individual aparece
+    for palavra, resposta in respostas_palavra_unica.items():
+        if palavra in palavras_usuario:
+            return resposta
 
-    print("🔮 Decorus-Bot escutando palavras místicas...")
-    app.run_polling()
+    return mensagem_padrao
+
+async def responder_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    mensagem = update.message.text.strip().lower()
+    resposta = detectar_contexto(mensagem)
+    await update.message.reply_text(resposta)
+
+# Comando /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🌙 Olá! Eu sou o Decorus-Bot. Me pergunte sobre banhos espirituais, proteção, amor, ervas e mais!")
+
+# Comando /banhos
+async def banhos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✨ Banhos espirituais limpam e energizam. Quer saber sobre amor, proteção ou prosperidade?")
 
 if __name__ == "__main__":
-    main()
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("banhos", banhos))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, responder_mensagem))
+
+    print("🔮 Decorus-Bot rodando...")
+    app.run_polling()
